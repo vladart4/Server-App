@@ -74,7 +74,6 @@ void NewClient::readyRead()
             return;
 
         in >> blockSize;
-       // qDebug() << socketDescriptor << "_blockSize now " << _blockSize;
     }
 
     if (socket->bytesAvailable() < blockSize)
@@ -87,8 +86,6 @@ void NewClient::readyRead()
     in >> command;
     qDebug() << socketDescriptor << "Received command " << command;
 
-    //if (!_isAutched && command != comAutchReq)
-       // return;
 
     switch(command)
     {
@@ -182,14 +179,9 @@ void NewClient::disconnected()
     deleteLater();
 }
 
-//void NewThread::SetParent(NewServer *parserver)
-//{
 
-//    pserver = parserver;
 
-//}
-
-void NewClient::printName(bool bAccess)
+void NewClient::printName(bool bAccess)         //TODO Нужна была для дебага, нужно объединить с нижней
 {
 
         if (bAccess)
@@ -202,7 +194,7 @@ void NewClient::printName(bool bAccess)
 
 }
 
-bool NewClient::SendAccess(bool bAccess)
+bool NewClient::SendAccess(bool bAccess)  //Даем доступ или отказываем
 {
    if(socket->state() == QAbstractSocket::ConnectedState)
     {
@@ -236,7 +228,7 @@ bool NewClient::SendAccess(bool bAccess)
 
 }
 
-bool NewClient::UpdateNames(QMap<QString, NewClient*> names)
+bool NewClient::UpdateNames(QMap<QString, NewClient*> names)  //TODO Отсылать целый список только новым подключениям, старым отсылать имя из нового
 {
     if(socket->state() == QAbstractSocket::ConnectedState)
     {
@@ -260,7 +252,7 @@ bool NewClient::UpdateNames(QMap<QString, NewClient*> names)
         return false;
 }
 
-bool NewClient::SendMessageToAll(QString msg, QString name)
+bool NewClient::SendMessageToAll(QString msg, QString name)  //Сообщения для всех
 {
 
     if(socket->state() == QAbstractSocket::ConnectedState)
@@ -282,7 +274,7 @@ bool NewClient::SendMessageToAll(QString msg, QString name)
 
 }
 
-bool NewClient::SendMessageToOne(QString msg, QString name)
+bool NewClient::SendMessageToOne(QString msg, QString name) //Приватные сообщения (можно объединить это с верхним через флаги, разница у них в посылаемой команде)
 {
 
    // qDebug() << socketDescriptor << "PrivateSlotTest" << name << msg;

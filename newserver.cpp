@@ -34,10 +34,7 @@ void NewServer::startServer()
 }
 
 
-
-
-
-void NewServer::SlotAddName(QString name, NewClient* client)
+void NewServer::SlotAddName(QString name, NewClient* client) //Сверяемся с существующими подключениями
 {
     qDebug() << name;
     bool bAccess = true;
@@ -54,7 +51,7 @@ void NewServer::SlotAddName(QString name, NewClient* client)
 
 }
 
-void NewServer::RemoveClient(NewClient *client)
+void NewServer::RemoveClient(NewClient *client) //Дисконнект
 {
 QString name = client->UserName;
 Clients.removeAt(Clients.indexOf(client));
@@ -91,18 +88,12 @@ void NewServer::SendMessageToOne(QString msg, QString name, QString rcv) //От�
 
 
 
-// This function is called by QTcpServer when a new connection is available.
 void NewServer::incomingConnection(qintptr socketDescriptor)
 {
-    // We have a new connection
-    qDebug() << socketDescriptor << " Connecting...";
 
-    // Every new connection will be run in a newly created thread
-    //QSharedPointer<NewClient> client = QSharedPointer<NewClient>(new NewClient(socketDescriptor), &QObject::deleteLater);
-    //auto client = QSharedPointer<NewClient>::create(socketDescriptor);
+    qDebug() << socketDescriptor << " Connecting...";
     NewClient* client = new NewClient(socketDescriptor);
     Clients.append(client);
-   // NewClient *client = new NewClient(socketDescriptor);
     connect(client, &NewClient::AddName, this, &NewServer::SlotAddName);
     connect(this, &NewServer::grantAccess, client, &NewClient::printName);
     connect(this, &NewServer::UpdateNameList, client, &NewClient::UpdateNames);
