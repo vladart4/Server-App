@@ -21,11 +21,12 @@ class NewClient : public QObject
 
 public:
     explicit NewClient(qintptr ID, QObject *parent = 0);
-    enum Action {Connect, NameUpdate, Message};
+    enum Action {Connect, NameUpdate, Message, Private, Test};
     Q_ENUM(Action)
     QSqlDatabase db;
     quint16 blockSize;
     QString UserName;
+    QString TempName;
     QSharedPointer<QString> nameptr;
     QMap<QString, NewClient*> NamesMap;
     QTcpSocket *socket;
@@ -34,17 +35,21 @@ signals:
     void AddName(QString, NewClient*);
     void finished(NewClient*);
     void messageToAll(QString, QString);
+    void messageToOne(QString, QString, QString);
 
 public slots:
-    void readyRead();
-    void disconnected();
     //void SetParent(NewServer* parserver);
-    void printName(bool bAccess, NewClient* client);
+    void printName(bool bAccess);
     bool SendAccess(bool bAccess);
     bool UpdateNames(QMap<QString, NewClient*> names);
     bool SendMessageToAll(QString msg, QString name);
+    bool SendMessageToOne(QString msg, QString name);
 
 
+private slots:
+        void readyRead();
+        void disconnected();
+        void disconnectfromHost();
 
 private:
 
@@ -52,6 +57,7 @@ private:
     QMutex mutex;
     QWaitCondition cond;
     bool quit;
+
 
 
 };

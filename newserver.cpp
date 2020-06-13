@@ -35,12 +35,7 @@ void NewServer::startServer()
 
 
 
-void NewServer::debugPrintNames()
-{
-   //myQMap::iterator i;
-   //for (i=NamesMap.begin(); i != NamesMap.end(); ++i)
-       //qDebug() << i.key() << ":" << i.value() << Qt::endl ;
-}
+
 
 void NewServer::SlotAddName(QString name, NewClient* client)
 {
@@ -54,8 +49,8 @@ void NewServer::SlotAddName(QString name, NewClient* client)
         emit UpdateNameList(NamesMap);
     }
     qDebug() << bAccess;
-    emit sendBack(name, client);
-    emit grantAccess(bAccess, client);
+    QMetaObject::invokeMethod(client, "printName",
+                              Q_ARG(bool, bAccess));
 
 }
 
@@ -63,13 +58,35 @@ void NewServer::RemoveClient(NewClient *client)
 {
 QString name = client->UserName;
 Clients.removeAt(Clients.indexOf(client));
+if (name != "")
 NamesMap.remove(name);
 emit UpdateNameList(NamesMap);
+QTimer::singleShot(50, this, std::bind(&NewServer::SendMessageToAll, this, "Has left the chat", name));
 }
 
-void NewServer::SendMessageToAll(QString msg, QString name)
+void NewServer::SendMessageToAll(QString msg, QString name) //Отправляем сообщения всем
 {
     emit SendMessageToAllSignal(msg, name);
+}
+
+void NewServer::SendMessageToOne(QString msg, QString name, QString rcv) //Отправляем сообщение единственному получателю и отправителю
+                                                                         //(у отправителя можно сделать на стороне клиента)
+{
+    NewClient* reciever = NamesMap[rcv];
+    if (reciever)
+       {
+         QMetaObject::invokeMethod(reciever, "SendMessageToOne",
+                                   Q_ARG(QString, msg),
+                                   Q_ARG(QString, name));
+       }
+    NewClient* sender = NamesMap[name];
+    if (sender)
+    {
+        QMetaObject::invokeMethod(sender, "SendMessageToOne",
+                                  Q_ARG(QString, msg),
+                                  Q_ARG(QString, name));
+    }
+
 }
 
 
@@ -91,6 +108,7 @@ void NewServer::incomingConnection(qintptr socketDescriptor)
     connect(this, &NewServer::UpdateNameList, client, &NewClient::UpdateNames);
     connect(client, &NewClient::messageToAll, this, &NewServer::SendMessageToAll);
     connect(this, &NewServer::SendMessageToAllSignal, client, &NewClient::SendMessageToAll);
+    connect(client, &NewClient::messageToOne, this, &NewServer::SendMessageToOne);
     QThread *thread = new QThread();
     client->socket->moveToThread(thread);
     client->moveToThread(thread);

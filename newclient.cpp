@@ -3,7 +3,7 @@
 #include "QSqlDatabase"
 #include "QSqlQuery"
 #include "newserver.h"
-
+#include <QTimer>
 
 
 NewClient::NewClient(qintptr ID, QObject *parent) :
@@ -99,11 +99,8 @@ void NewClient::readyRead()
 
             QString name;
             in >> name;
-            QString pass;
-            in >> pass;
 
             qDebug() << socketDescriptor << "Recieve name" << name;
-            qDebug() << socketDescriptor << "Recieve pass" << pass;
 
 //            QSqlQuery *qry = new QSqlQuery(db);
 //            qry->prepare("SELECT Username, Password FROM users WHERE Username = ?");
@@ -121,9 +118,9 @@ void NewClient::readyRead()
 //            else
 //                qDebug() <<"Access Denied";
 
-            UserName = name;
+            TempName = name;
 
-            emit AddName(UserName, this);
+            emit AddName(TempName, this);
             //SendAccess(true);
 
           break;
@@ -141,8 +138,35 @@ void NewClient::readyRead()
 
                 emit messageToAll(msg, name);
 
+            break;
+        }
+
+        case Private:
+        {
+          QString name;
+          QString msg;
+          QString rcv;
+
+          in >> name;
+          in >> msg;
+          in >> rcv;
+
+          qDebug() << socketDescriptor << name << " to " << rcv << msg;
+
+            emit messageToOne(msg,name,rcv);
+          break;
 
         }
+
+
+
+        default:
+         {
+
+            disconnectfromHost();
+            break;
+
+         }
 
 
     }
@@ -165,18 +189,15 @@ void NewClient::disconnected()
 
 //}
 
-void NewClient::printName(bool bAccess, NewClient* client)
+void NewClient::printName(bool bAccess)
 {
-    if (client == this)
-    {
+
         if (bAccess)
-            qDebug() << socketDescriptor << "Welcome to chat " + UserName;
+            qDebug() << socketDescriptor << "Welcome to chat " + TempName;
         else
-            qDebug() << socketDescriptor << "Username " + UserName + " is already taken.";
+            qDebug() << socketDescriptor << "Username " + TempName + " is already taken.";
 
         SendAccess(bAccess);
-
-    }
 
 
 }
@@ -198,7 +219,12 @@ bool NewClient::SendAccess(bool bAccess)
                 for (i=NamesMap.begin(); i != NamesMap.end(); ++i)
                     newnames << i.key();
                 stream << newnames;
-            }
+                UserName = TempName;
+                }
+            else
+                {
+                    QTimer::singleShot(100, this, &NewClient::disconnectfromHost);
+                }
 
         socket->write(barr);
       //socket->flush();
@@ -253,5 +279,35 @@ bool NewClient::SendMessageToAll(QString msg, QString name)
       }
     else
         return false;
+
+}
+
+bool NewClient::SendMessageToOne(QString msg, QString name)
+{
+
+   // qDebug() << socketDescriptor << "PrivateSlotTest" << name << msg;
+    if(socket->state() == QAbstractSocket::ConnectedState)
+     {
+        Action ac = Private;
+        QByteArray parr;
+        QDataStream stream (&parr, QIODevice::WriteOnly);
+
+        stream << ac;
+        stream << msg;
+        stream << name;
+
+        socket->write(parr);
+        //socket->flush();
+       return socket->waitForBytesWritten();
+      }
+    else
+        return false;
+
+}
+
+void NewClient::disconnectfromHost()
+{
+
+    socket->disconnectFromHost();
 
 }
