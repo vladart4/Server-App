@@ -46,19 +46,20 @@ void NewServer::SlotAddName(QString name, NewClient* client) //Сверяемс�
         emit UpdateNameList(NamesMap);
     }
     qDebug() << bAccess;
-    QMetaObject::invokeMethod(client, "printName",
-                              Q_ARG(bool, bAccess));
+//    QMetaObject::invokeMethod(client, "printName",
+//                              Q_ARG(bool, bAccess));
+    QMetaObject::invokeMethod(client, std::bind(&NewClient::printName, client, bAccess), Qt::QueuedConnection);
 
 }
 
 void NewServer::RemoveClient(NewClient *client) //Дисконнект
 {
-QString name = client->UserName;
-Clients.removeAt(Clients.indexOf(client));
-if (name != "")
-NamesMap.remove(name);
-emit UpdateNameList(NamesMap);
-QTimer::singleShot(50, this, std::bind(&NewServer::SendMessageToAll, this, "Has left the chat", name));
+    QString name = client->UserName;
+    Clients.removeAt(Clients.indexOf(client));
+    if (name != "")
+    NamesMap.remove(name);
+    emit UpdateNameList(NamesMap);
+    QTimer::singleShot(50, this, std::bind(&NewServer::SendMessageToAll, this, "Has left the chat", name));
 }
 
 void NewServer::SendMessageToAll(QString msg, QString name) //Отправляем сообщения всем
@@ -72,16 +73,18 @@ void NewServer::SendMessageToOne(QString msg, QString name, QString rcv) //От�
     NewClient* reciever = NamesMap[rcv];
     if (reciever)
        {
-         QMetaObject::invokeMethod(reciever, "SendMessageToOne",
-                                   Q_ARG(QString, msg),
-                                   Q_ARG(QString, name));
+//         QMetaObject::invokeMethod(reciever, "SendMessageToOne",
+//                                   Q_ARG(QString, msg),
+//                                   Q_ARG(QString, name));
+         QMetaObject::invokeMethod(reciever, std::bind(&NewClient::SendMessageToOne, reciever, msg, name));
        }
     NewClient* sender = NamesMap[name];
     if (sender)
     {
-        QMetaObject::invokeMethod(sender, "SendMessageToOne",
-                                  Q_ARG(QString, msg),
-                                  Q_ARG(QString, name));
+//        QMetaObject::invokeMethod(sender, "SendMessageToOne",
+//                                  Q_ARG(QString, msg),
+//                                  Q_ARG(QString, name));
+        QMetaObject::invokeMethod(sender, std::bind(&NewClient::SendMessageToOne, sender, msg, name));
     }
 
 }
