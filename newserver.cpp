@@ -46,9 +46,8 @@ void NewServer::SlotAddName(QString name, NewClient* client) //Сверяемс�
         emit UpdateNameList(NamesMap);
     }
     qDebug() << bAccess;
-//    QMetaObject::invokeMethod(client, "printName",
-//                              Q_ARG(bool, bAccess));
-    QMetaObject::invokeMethod(client, std::bind(&NewClient::printName, client, bAccess), Qt::QueuedConnection);
+
+    QTimer::singleShot(50, client, std::bind(&NewClient::printName, client, bAccess));
 
 }
 
@@ -57,9 +56,11 @@ void NewServer::RemoveClient(NewClient *client) //Дисконнект
     QString name = client->UserName;
     Clients.removeAt(Clients.indexOf(client));
     if (name != "")
+   {
     NamesMap.remove(name);
     emit UpdateNameList(NamesMap);
     QTimer::singleShot(50, this, std::bind(&NewServer::SendMessageToAll, this, "Has left the chat", name));
+   }
 }
 
 void NewServer::SendMessageToAll(QString msg, QString name) //Отправляем сообщения всем
