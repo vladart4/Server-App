@@ -3,7 +3,6 @@
 
 #include <QObject>
 #include <QTcpServer>
-#include "newthread.h"
 #include "newclient.h"
 #include "QSqlDatabase"
 #include <QMetaType>

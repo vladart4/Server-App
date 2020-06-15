@@ -1,6 +1,5 @@
 #include "newserver.h"
 #include "newclient.h"
-#include "newthread.h"
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QMetaType>
