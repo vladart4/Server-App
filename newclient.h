@@ -40,7 +40,8 @@ signals:
 public slots:
     //void SetParent(NewServer* parserver);
     bool sendAccess(bool bAccess);
-    bool updateNames(QMap<QString, NewClient*> names);
+    bool noticeConnect(QString name);
+    bool noticeDisconnect(QString name);
     bool sendMessageToAll(QString msg, QString name);
     bool sendMessageToOne(QString msg, QString name);
 

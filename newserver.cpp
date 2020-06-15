@@ -35,7 +35,7 @@ void NewServer::slotAddName(QString name, NewClient* client)
     if (bAccess) // Если нет, добавляем пользователя в список
     {
         NamesMap.insert(name, client);
-        emit updateNameList(NamesMap);
+        emit connectSignal(name);
     }
 
     qDebug() << name << bAccess;
@@ -54,9 +54,8 @@ void NewServer::removeClient(NewClient *client)
     if (name != "")
     {
         NamesMap.remove(name);
-        emit updateNameList(NamesMap);
         QTimer::singleShot(50, this,
-            std::bind(&NewServer::sendMessageToAll, this, "Has left the chat", name));
+            std::bind(&NewServer::disconnectSignal, this, name));
    }
 }
 
@@ -98,8 +97,9 @@ void NewServer::incomingConnection(qintptr socketDescriptor)
 
     // Подключаем сигналы
     connect(this, &NewServer::grantAccess, client, &NewClient::sendAccess);
-    connect(this, &NewServer::updateNameList, client, &NewClient::updateNames);
     connect(this, &NewServer::sendMessageToAllSignal, client, &NewClient::sendMessageToAll);
+    connect(this, &NewServer::connectSignal, client, &NewClient::noticeConnect);
+    connect(this, &NewServer::disconnectSignal, client, &NewClient::noticeDisconnect);
     connect(client, &NewClient::addName, this, &NewServer::slotAddName);
     connect(client, &NewClient::messageToAll, this, &NewServer::sendMessageToAll);
     connect(client, &NewClient::messageToOne, this, &NewServer::sendMessageToOne);
