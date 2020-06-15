@@ -3,10 +3,9 @@
 
 #include <QObject>
 #include <QTcpServer>
-#include "newclient.h"
-#include "QSqlDatabase"
 #include <QMetaType>
 #include <QTimer>
+#include "newclient.h"
 
 typedef QMap<QString, NewClient*> myQMap;
 Q_DECLARE_METATYPE(myQMap);

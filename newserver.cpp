@@ -42,7 +42,7 @@ void NewServer::slotAddName(QString name, NewClient* client)
 
     // Даём клиенту знать насчёт возможности входа
     QTimer::singleShot(50, client,
-        std::bind(&NewClient::printName, client, bAccess));
+        std::bind(&NewClient::sendAccess, client, bAccess));
 }
 
 
@@ -50,7 +50,7 @@ void NewServer::slotAddName(QString name, NewClient* client)
 void NewServer::removeClient(NewClient *client)
 {
     QString name = client->UserName;
-    Clients.removeAt(Clients.indexOf(client));
+    // KILLME Clients.removeAt(Clients.indexOf(client));
     if (name != "")
     {
         NamesMap.remove(name);
@@ -77,13 +77,13 @@ void NewServer::sendMessageToOne(QString msg, QString name, QString rcv)
     {
         NewClient* reciever = NamesMap[rcv];
         QMetaObject::invokeMethod(reciever,
-            std::bind(&NewClient::SendMessageToOne, reciever, msg, name));
+            std::bind(&NewClient::sendMessageToOne, reciever, msg, name));
     }
     if (NamesMap.contains(name))
     {
         NewClient* sender = NamesMap[name];
         QMetaObject::invokeMethod(sender,
-            std::bind(&NewClient::SendMessageToOne, sender, msg, name));
+            std::bind(&NewClient::sendMessageToOne, sender, msg, name));
     }
 }
 
@@ -94,13 +94,13 @@ void NewServer::incomingConnection(qintptr socketDescriptor)
 {
     qDebug() << socketDescriptor << " Connecting...";
     NewClient* client = new NewClient(socketDescriptor);
-    Clients.append(client);
+    // KILLME Clients.append(client);
 
     // Подключаем сигналы
-    connect(this, &NewServer::grantAccess, client, &NewClient::printName);
-    connect(this, &NewServer::updateNameList, client, &NewClient::UpdateNames);
-    connect(this, &NewServer::sendMessageToAllSignal, client, &NewClient::SendMessageToAll);
-    connect(client, &NewClient::AddName, this, &NewServer::slotAddName);
+    connect(this, &NewServer::grantAccess, client, &NewClient::sendAccess);
+    connect(this, &NewServer::updateNameList, client, &NewClient::updateNames);
+    connect(this, &NewServer::sendMessageToAllSignal, client, &NewClient::sendMessageToAll);
+    connect(client, &NewClient::addName, this, &NewServer::slotAddName);
     connect(client, &NewClient::messageToAll, this, &NewServer::sendMessageToAll);
     connect(client, &NewClient::messageToOne, this, &NewServer::sendMessageToOne);
 
