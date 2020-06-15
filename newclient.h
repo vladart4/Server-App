@@ -39,7 +39,7 @@ signals:
 
 public slots:
     //void SetParent(NewServer* parserver);
-    bool sendAccess(bool bAccess);
+    bool sendAccess(bool bAccess, QStringList names);
     bool noticeConnect(QString name);
     bool noticeDisconnect(QString name);
     bool sendMessageToAll(QString msg, QString name);

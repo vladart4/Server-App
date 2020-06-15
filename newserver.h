@@ -31,7 +31,7 @@ class NewServer : public QTcpServer
 
     signals:
         void sendBack(QString, NewClient*);
-        void grantAccess(bool, NewClient*);
+        void grantAccess(bool, QStringList);
         void connectSignal(QString);
         void disconnectSignal(QString);
         void sendMessageToAllSignal(QString, QString);

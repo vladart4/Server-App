@@ -139,7 +139,7 @@ void NewClient::disconnected()
 
 
 // Даем доступ или отказываем
-bool NewClient::sendAccess(bool bAccess)
+bool NewClient::sendAccess(bool bAccess, QStringList names)
 {
     if(socket->state() != QAbstractSocket::ConnectedState)
         return false;
@@ -156,13 +156,13 @@ bool NewClient::sendAccess(bool bAccess)
         barr = prepareMessage("EVMp_WELCOME");
         socket->write(barr);
 
-        QList<QString> newnames;
-        QMap<QString, NewClient*>::iterator i;
-        for (i=NamesMap.begin(); i != NamesMap.end(); ++i) {
+        QStringList::iterator i;
+        for (i=names.begin(); i != names.end(); ++i) {
             barr = prepareMessage("EVMp_CONNECT_0_" +
-                                  QString::number(i.key().length()) +
-                                  "_" + i.key());
+                                  QString::number(i->length()) +
+                                  "_" + *i);
             socket->write(barr);
+
         }
         UserName = TempName;
         return socket->waitForBytesWritten();

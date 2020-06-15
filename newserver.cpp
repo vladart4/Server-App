@@ -10,6 +10,7 @@ NewServer::NewServer(QObject *parent) : QTcpServer(parent)
 {
     qRegisterMetaType<myQMap>();
     qRegisterMetaType<qint64>();
+    qRegisterMetaType<QStringList>();
 }
 
 
@@ -31,10 +32,11 @@ void NewServer::slotAddName(QString name, NewClient* client)
 {
     // Проверяем, что клиент не указал существующее имя
     bool bAccess = !NamesMap.contains(name);
-
+    QStringList names;
     if (bAccess) // Если нет, добавляем пользователя в список
     {
         NamesMap.insert(name, client);
+        names = NamesMap.keys();
         emit connectSignal(name);
     }
 
@@ -42,7 +44,7 @@ void NewServer::slotAddName(QString name, NewClient* client)
 
     // Даём клиенту знать насчёт возможности входа
     QTimer::singleShot(50, client,
-        std::bind(&NewClient::sendAccess, client, bAccess));
+        std::bind(&NewClient::sendAccess, client, bAccess, names));
 }
 
 
