@@ -7,20 +7,15 @@
 #include <QMetaObject>
 
 
-
-NewServer::NewServer(QObject *parent) :
-    QTcpServer(parent)
+NewServer::NewServer(QObject *parent) : QTcpServer(parent)
 {
-
-qRegisterMetaType<myQMap>();
-qRegisterMetaType<qint64>();
-
+    qRegisterMetaType<myQMap>();
+    qRegisterMetaType<qint64>();
 }
 
-void NewServer::startServer()
-{
-    int port = 1234;
 
+void NewServer::startServer(int port)
+{
     if(!this->listen(QHostAddress::Any, port))
     {
         qDebug() << "Could not start server";
@@ -28,88 +23,95 @@ void NewServer::startServer()
     else
     {
         qDebug() << "Listening to port " << port << "...";
-
     }
-
 }
 
 
-void NewServer::SlotAddName(QString name, NewClient* client) //Сверяемся с существующими подключениями
+// Обработка входа в чат (пользователь представился)
+void NewServer::slotAddName(QString name, NewClient* client)
 {
-    qDebug() << name;
-    bool bAccess = true;
-    if (NamesMap.contains(name))
-        bAccess = false;
-    else
+    // Проверяем, что клиент не указал существующее имя
+    bool bAccess = !NamesMap.contains(name);
+
+    if (bAccess) // Если нет, добавляем пользователя в список
     {
         NamesMap.insert(name, client);
-        emit UpdateNameList(NamesMap);
+        emit updateNameList(NamesMap);
     }
-    qDebug() << bAccess;
 
-    QTimer::singleShot(50, client, std::bind(&NewClient::printName, client, bAccess));
+    qDebug() << name << bAccess;
 
+    // Даём клиенту знать насчёт возможности входа
+    QTimer::singleShot(50, client,
+        std::bind(&NewClient::printName, client, bAccess));
 }
 
-void NewServer::RemoveClient(NewClient *client) //Дисконнект
+
+// Обработка дисконнекта
+void NewServer::removeClient(NewClient *client)
 {
     QString name = client->UserName;
     Clients.removeAt(Clients.indexOf(client));
     if (name != "")
-   {
-    NamesMap.remove(name);
-    emit UpdateNameList(NamesMap);
-    QTimer::singleShot(50, this, std::bind(&NewServer::SendMessageToAll, this, "Has left the chat", name));
+    {
+        NamesMap.remove(name);
+        emit updateNameList(NamesMap);
+        QTimer::singleShot(50, this,
+            std::bind(&NewServer::sendMessageToAll, this, "Has left the chat", name));
    }
 }
 
-void NewServer::SendMessageToAll(QString msg, QString name) //Отправляем сообщения всем
+
+// Отправляем сообщения всем
+void NewServer::sendMessageToAll(QString msg, QString name)
 {
-    emit SendMessageToAllSignal(msg, name);
+    emit sendMessageToAllSignal(msg, name);
 }
 
-void NewServer::SendMessageToOne(QString msg, QString name, QString rcv) //Отправляем сообщение единственному получателю и отправителю
-                                                                         //(у отправителя можно сделать на стороне клиента)
+
+// Отправляем сообщение единственному получателю и отправителю
+// (у отправителя можно сделать на стороне клиента)
+// TODO: НУЖНО СДЕЛАТЬ НА СТОРОНЕ КЛИЕНТА
+void NewServer::sendMessageToOne(QString msg, QString name, QString rcv)
 {
-    NewClient* reciever = NamesMap[rcv];
-    if (reciever)
-       {
-//         QMetaObject::invokeMethod(reciever, "SendMessageToOne",
-//                                   Q_ARG(QString, msg),
-//                                   Q_ARG(QString, name));
-         QMetaObject::invokeMethod(reciever, std::bind(&NewClient::SendMessageToOne, reciever, msg, name));
-       }
-    NewClient* sender = NamesMap[name];
-    if (sender)
+    if (NamesMap.contains(rcv))
     {
-//        QMetaObject::invokeMethod(sender, "SendMessageToOne",
-//                                  Q_ARG(QString, msg),
-//                                  Q_ARG(QString, name));
-        QMetaObject::invokeMethod(sender, std::bind(&NewClient::SendMessageToOne, sender, msg, name));
+        NewClient* reciever = NamesMap[rcv];
+        QMetaObject::invokeMethod(reciever,
+            std::bind(&NewClient::SendMessageToOne, reciever, msg, name));
     }
-
+    if (NamesMap.contains(name))
+    {
+        NewClient* sender = NamesMap[name];
+        QMetaObject::invokeMethod(sender,
+            std::bind(&NewClient::SendMessageToOne, sender, msg, name));
+    }
 }
 
 
-
+// Обработка нового подключения
+// (добавить в клиенты, ждать, пока пришлёт имя)
 void NewServer::incomingConnection(qintptr socketDescriptor)
 {
-
     qDebug() << socketDescriptor << " Connecting...";
     NewClient* client = new NewClient(socketDescriptor);
     Clients.append(client);
-    connect(client, &NewClient::AddName, this, &NewServer::SlotAddName);
+
+    // Подключаем сигналы
     connect(this, &NewServer::grantAccess, client, &NewClient::printName);
-    connect(this, &NewServer::UpdateNameList, client, &NewClient::UpdateNames);
-    connect(client, &NewClient::messageToAll, this, &NewServer::SendMessageToAll);
-    connect(this, &NewServer::SendMessageToAllSignal, client, &NewClient::SendMessageToAll);
-    connect(client, &NewClient::messageToOne, this, &NewServer::SendMessageToOne);
+    connect(this, &NewServer::updateNameList, client, &NewClient::UpdateNames);
+    connect(this, &NewServer::sendMessageToAllSignal, client, &NewClient::SendMessageToAll);
+    connect(client, &NewClient::AddName, this, &NewServer::slotAddName);
+    connect(client, &NewClient::messageToAll, this, &NewServer::sendMessageToAll);
+    connect(client, &NewClient::messageToOne, this, &NewServer::sendMessageToOne);
+
+    // Выводим клиента в отдельный поток, чтобы удобнее
+    // фиксировать его отключение
     QThread *thread = new QThread();
     client->socket->moveToThread(thread);
     client->moveToThread(thread);
 
-
-    connect(client, &NewClient::finished, this, &NewServer::RemoveClient);
+    connect(client, &NewClient::finished, this, &NewServer::removeClient);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
     thread->start();
 }

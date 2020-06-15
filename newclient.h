@@ -30,6 +30,7 @@ public:
     QSharedPointer<QString> nameptr;
     QMap<QString, NewClient*> NamesMap;
     QTcpSocket *socket;
+
 signals:
     void error(QTcpSocket::SocketError socketerror);
     void AddName(QString, NewClient*);
@@ -45,20 +46,16 @@ public slots:
     bool SendMessageToAll(QString msg, QString name);
     bool SendMessageToOne(QString msg, QString name);
 
-
 private slots:
         void readyRead();
         void disconnected();
         void disconnectfromHost();
 
 private:
-
     qintptr socketDescriptor;
     QMutex mutex;
     QWaitCondition cond;
     bool quit;
-
-
 
 };
 

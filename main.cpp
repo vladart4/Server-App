@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
 
     NewServer server;
-      server.startServer();
+    server.startServer();
 
     return a.exec();
 }

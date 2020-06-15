@@ -17,27 +17,32 @@ class NewServer : public QTcpServer
     Q_OBJECT
     public:
         explicit NewServer(QObject *parent = 0);
-        QList<NewThread*> ConnectedUsrs;
-        void startServer();
-        QSqlDatabase db;
-        myQMap NamesMap;
-        QList<QTcpSocket*> Sockets;
+
+        // QSqlDatabase db;
+        // QTimer* timer;
+
+        /// Список текущих клиентских подключений
         QList<NewClient*> Clients;
-        QTimer* timer;
+
+        /// Словарь, сопоставляющий пользователя с клиентом,
+        /// нужен для быстрой выборки при отправке в приват.
+        myQMap NamesMap;
+
+        /// Поднять сервер и отчитаться в консоль
+        void startServer(int port=14000);
 
     signals:
         void sendBack(QString, NewClient*);
         void grantAccess(bool, NewClient*);
-        void UpdateNameList(myQMap);
-        void SendMessageToAllSignal(QString, QString);
-        void SendMessageToOneSignal(QString, QString, NewClient*);
-
+        void updateNameList(myQMap);
+        void sendMessageToAllSignal(QString, QString);
+        void sendMessageToOneSignal(QString, QString, NewClient*);
 
     public slots:
-        void SlotAddName(QString name, NewClient* client);
-        void RemoveClient(NewClient* client);
-        void SendMessageToAll(QString msg, QString name);
-        void SendMessageToOne(QString msg, QString name, QString rcv);
+        void slotAddName(QString name, NewClient* client);
+        void removeClient(NewClient* client);
+        void sendMessageToAll(QString msg, QString name);
+        void sendMessageToOne(QString msg, QString name, QString rcv);
 
     protected:
         void incomingConnection(qintptr socketDescriptor);
