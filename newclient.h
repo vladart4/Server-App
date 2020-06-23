@@ -9,9 +9,18 @@
 #include <QThreadPool>
 #include <QRegExp>
 #include <QMutex>
+#include <iostream>
 #include <QWaitCondition>
+#include <jrtplib3/rtpsession.h>
+#include <jrtplib3/rtpsessionparams.h>
+#include <jrtplib3/rtpipv4address.h>
+#include <jrtplib3/rtpudpv4transmitter.h>
+#include <jrtplib3/rtperrors.h>
+#include <jrtplib3/rtppacket.h>
+#include <emiplib/miprtpcomponent.h>
+#include <QTimer>
 
-
+using namespace jrtplib;
 class NewServer;
 
 class NewClient : public QObject
@@ -29,6 +38,7 @@ public:
     // QSharedPointer<QString> nameptr;
     QMap<QString, NewClient*> NamesMap;
     QTcpSocket *socket;
+    QTimer *timer;
 
 signals:
     void error(QTcpSocket::SocketError socketerror);
@@ -49,12 +59,23 @@ private slots:
     void readyRead();
     void disconnected();
     void disconnectfromHost();
+    void RTPData();
 
 private:
     qintptr socketDescriptor;
     // QMutex mutex;
     // QWaitCondition cond;
     // bool quit;
+    RTPUDPv4TransmissionParams transmissionParams;
+    RTPSessionParams sessionParams;
+    bool returnValue;
+    int portBase = 14004;
+    int status;
+    RTPPacket *pack;
+    uint8_t *datatest;
+    RTPSession rtpSession;
+
+
 };
 
 #endif // NEWCLIENT_H

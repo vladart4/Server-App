@@ -111,6 +111,7 @@ void NewServer::incomingConnection(qintptr socketDescriptor)
     QThread *thread = new QThread();
     client->socket->moveToThread(thread);
     client->moveToThread(thread);
+    client->timer->moveToThread(thread);
 
     connect(client, &NewClient::finished, this, &NewServer::removeClient);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);

@@ -3,8 +3,31 @@
 #include "QSqlDatabase"
 #include "QSqlQuery"
 #include "newserver.h"
-#include <QTimer>
 
+using namespace jrtplib;
+
+
+void checkError(int status)
+{
+    if (status >= 0)
+        return;
+
+    std::cerr << "An error occured in the RTP component: " << std::endl;
+    std::cerr << "Error description: " << RTPGetErrorString(status) << std::endl;
+
+    exit(-1);
+}
+
+void checkError(bool returnValue, const MIPComponent &component)
+{
+    if (returnValue == true)
+        return;
+
+    std::cerr << "An error occured in component: " << component.getComponentName() << std::endl;
+    std::cerr << "Error description: " << component.getErrorString() << std::endl;
+
+    exit(-1);
+}
 
 NewClient::NewClient(qintptr ID, QObject *parent) : QObject(parent)
 {
@@ -23,6 +46,29 @@ NewClient::NewClient(qintptr ID, QObject *parent) : QObject(parent)
     connect(socket, SIGNAL(disconnected()), this, SLOT(disconnected()));
 
     qDebug() << socketDescriptor << " Client connected";
+
+    transmissionParams.SetPortbase(portBase);
+    sessionParams.SetOwnTimestampUnit(1.0/((double)16000));
+    sessionParams.SetMaximumPacketSize(2000);
+    sessionParams.SetAcceptOwnPackets(true);
+
+    status = rtpSession.Create(sessionParams,&transmissionParams);
+    checkError(status);
+
+    rtpSession.SetDefaultPayloadType(0);
+    rtpSession.SetDefaultMark(false);
+    rtpSession.SetDefaultTimestampIncrement(160);
+
+    QHostAddress haddress = QHostAddress("127.0.0.1");
+    uint32_t ipaddress = haddress.toIPv4Address();
+    status = rtpSession.AddDestination(RTPIPv4Address(ipaddress, 14002));
+    checkError(status);
+
+    timer = new QTimer();
+    timer->setInterval(10);
+    connect(timer, &QTimer::timeout, this, &NewClient::RTPData);
+    timer->start();
+
 }
 
 
@@ -135,6 +181,11 @@ void NewClient::disconnected()
     qDebug() << socketDescriptor << " Disconnected";
     emit finished(this);
     deleteLater();
+    timer->stop();
+    rtpSession.Destroy();
+    socket->deleteLater();
+
+
 }
 
 
@@ -230,4 +281,31 @@ bool NewClient::sendMessageToOne(QString msg, QString name) //Приватные
 void NewClient::disconnectfromHost()
 {
     socket->disconnectFromHost();
+}
+
+void NewClient::RTPData()
+{
+
+
+    rtpSession.BeginDataAccess();
+    if (rtpSession.GotoFirstSourceWithData())
+            {
+                do
+                {
+
+
+                    while ((pack = rtpSession.GetNextPacket()) != 0)
+                    {
+
+                        datatest = pack->GetPayloadData();
+                        status = rtpSession.SendPacket(datatest, pack->GetPayloadLength());
+                        rtpSession.DeletePacket(pack);
+                        checkError(status);
+
+                    }
+                } while (rtpSession.GotoNextSourceWithData());
+            }
+
+    rtpSession.EndDataAccess();
+
 }
