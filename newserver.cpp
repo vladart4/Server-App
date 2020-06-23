@@ -110,6 +110,8 @@ void NewServer::incomingConnection(qintptr socketDescriptor)
     // фиксировать его отключение
     QThread *thread = new QThread();
     client->socket->moveToThread(thread);
+    client->udpSocket->moveToThread(thread);
+    client->testSocket->moveToThread(thread);
     client->moveToThread(thread);
 
     connect(client, &NewClient::finished, this, &NewServer::removeClient);

@@ -6,6 +6,7 @@
 #include <QTcpSocket>
 #include <QDebug>
 #include <QTcpSocket>
+#include <QUdpSocket>
 #include <QThreadPool>
 #include <QRegExp>
 #include <QMutex>
@@ -29,6 +30,8 @@ public:
     // QSharedPointer<QString> nameptr;
     QMap<QString, NewClient*> NamesMap;
     QTcpSocket *socket;
+    QUdpSocket *udpSocket;
+    QUdpSocket *testSocket;
 
 signals:
     void error(QTcpSocket::SocketError socketerror);
@@ -49,6 +52,7 @@ private slots:
     void readyRead();
     void disconnected();
     void disconnectfromHost();
+    void udpreadyRead();
 
 private:
     qintptr socketDescriptor;

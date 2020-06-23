@@ -4,6 +4,8 @@
 #include "QSqlQuery"
 #include "newserver.h"
 #include <QTimer>
+#include <QNetworkDatagram>
+#include <QNetworkInterface>
 
 
 NewClient::NewClient(qintptr ID, QObject *parent) : QObject(parent)
@@ -11,6 +13,8 @@ NewClient::NewClient(qintptr ID, QObject *parent) : QObject(parent)
     socketDescriptor = ID;
     blockSize = 0;
     socket = new QTcpSocket();
+    udpSocket = new QUdpSocket();
+    testSocket = new QUdpSocket();
 
     if(!socket->setSocketDescriptor(socketDescriptor))
     {
@@ -21,6 +25,22 @@ NewClient::NewClient(qintptr ID, QObject *parent) : QObject(parent)
 
     connect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()), Qt::DirectConnection);
     connect(socket, SIGNAL(disconnected()), this, SLOT(disconnected()));
+
+   QHostAddress ipv4address(socket->peerAddress().toIPv4Address());
+
+    udpSocket->bind(ipv4address, 14004, QUdpSocket::ShareAddress);
+//    udpSocket->joinMulticastGroup(ipv4address);
+//    testSocket->bind(QHostAddress(QHostAddress::AnyIPv4), 0);
+//    testSocket->setMulticastInterface(multicast_netif);
+//    testSocket->setSocketOption(QAbstractSocket::MulticastTtlOption, 255);
+
+
+
+    qDebug() << ipv4address;
+    qDebug() << udpSocket->state() ;
+
+    connect(udpSocket, &QUdpSocket::readyRead, this, &NewClient::udpreadyRead);
+
 
     qDebug() << socketDescriptor << " Client connected";
 }
@@ -106,6 +126,8 @@ void NewClient::readyRead()
         QString msg = command;
         qDebug() << socketDescriptor << msg;
 
+        qDebug() << udpSocket->state();
+
         emit messageToAll(msg, UserName);
     }
     else if (cmdType == "PRIVATEMSG")
@@ -135,6 +157,8 @@ void NewClient::disconnected()
     qDebug() << socketDescriptor << " Disconnected";
     emit finished(this);
     deleteLater();
+    udpSocket->deleteLater();
+    socket->deleteLater();
 }
 
 
@@ -230,4 +254,19 @@ bool NewClient::sendMessageToOne(QString msg, QString name) //Приватные
 void NewClient::disconnectfromHost()
 {
     socket->disconnectFromHost();
+}
+
+void NewClient::udpreadyRead()
+{
+    QByteArray datagram;
+
+    while (udpSocket->hasPendingDatagrams()) {
+        //datagram.resize(int(udpSocket->pendingDatagramSize()));
+        QNetworkDatagram newd = udpSocket->receiveDatagram();
+        //udpSocket->readDatagram(datagram.data(), datagram.size());
+        udpSocket->writeDatagram(newd.data(), QHostAddress(socket->peerAddress().toIPv4Address()), newd.senderPort());
+       // udpSocket->writeDatagram(datagram, QHostAddress(socket->peerAddress().toIPv4Address()), 14002);
+        //qDebug() << "Receieved" << udpSocket->state();
+
+    }
 }
