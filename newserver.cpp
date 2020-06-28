@@ -88,6 +88,46 @@ void NewServer::sendMessageToOne(QString msg, QString name, QString rcv)
     }
 }
 
+void NewServer::sendCallRequest(QString reciever, QString address, QString sender)
+{
+    if (NamesMap.contains(reciever))
+    {
+        NewClient* rcv = NamesMap[reciever];
+        QMetaObject::invokeMethod(rcv,
+                   std::bind(&NewClient::sendCallRequest, rcv, sender, address));
+
+
+    }
+}
+
+void NewServer::makeCall(QString reciever, QString sender)
+{
+    if (NamesMap.contains(reciever) && NamesMap.contains(sender))
+    {
+        NewClient* rcv = NamesMap[reciever];
+        NewClient* snd = NamesMap[sender];
+
+        QMetaObject::invokeMethod(rcv,
+            std::bind(&NewClient::sendMakeCall, rcv, sender, snd->ipv4address->toString()));
+
+        QMetaObject::invokeMethod(snd,
+            std::bind(&NewClient::sendMakeCall, snd, reciever, rcv->ipv4address->toString()));
+    }
+}
+
+void NewServer::rejectCall(QString sender, QString reciever)
+{
+    if (NamesMap.contains(sender))
+    {
+        NewClient* snd = NamesMap[sender];
+
+        QMetaObject::invokeMethod(snd,
+                std::bind(&NewClient::sendRejectCall, snd, reciever));
+
+
+    }
+}
+
 
 // Обработка нового подключения
 // (добавить в клиенты, ждать, пока пришлёт имя)
@@ -105,13 +145,15 @@ void NewServer::incomingConnection(qintptr socketDescriptor)
     connect(client, &NewClient::addName, this, &NewServer::slotAddName);
     connect(client, &NewClient::messageToAll, this, &NewServer::sendMessageToAll);
     connect(client, &NewClient::messageToOne, this, &NewServer::sendMessageToOne);
+    connect(client, &NewClient::requestCallSignal, this, &NewServer::sendCallRequest);
+    connect(client, &NewClient::makeCallConnect, this, &NewServer::makeCall);
+    connect(client, &NewClient::makeCallReject, this, &NewServer::rejectCall);
 
     // Выводим клиента в отдельный поток, чтобы удобнее
     // фиксировать его отключение
     QThread *thread = new QThread();
     client->socket->moveToThread(thread);
     client->moveToThread(thread);
-    client->timer->moveToThread(thread);
 
     connect(client, &NewClient::finished, this, &NewServer::removeClient);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);

@@ -11,16 +11,8 @@
 #include <QMutex>
 #include <iostream>
 #include <QWaitCondition>
-#include <jrtplib3/rtpsession.h>
-#include <jrtplib3/rtpsessionparams.h>
-#include <jrtplib3/rtpipv4address.h>
-#include <jrtplib3/rtpudpv4transmitter.h>
-#include <jrtplib3/rtperrors.h>
-#include <jrtplib3/rtppacket.h>
-#include <emiplib/miprtpcomponent.h>
 #include <QTimer>
 
-using namespace jrtplib;
 class NewServer;
 
 class NewClient : public QObject
@@ -39,6 +31,7 @@ public:
     QMap<QString, NewClient*> NamesMap;
     QTcpSocket *socket;
     QTimer *timer;
+    QHostAddress *ipv4address;
 
 signals:
     void error(QTcpSocket::SocketError socketerror);
@@ -46,6 +39,9 @@ signals:
     void finished(NewClient*);
     void messageToAll(QString, QString);
     void messageToOne(QString, QString, QString);
+    void requestCallSignal(QString, QString, QString);
+    void makeCallConnect(QString, QString);
+    void makeCallReject(QString, QString);
 
 public slots:
     //void SetParent(NewServer* parserver);
@@ -54,27 +50,23 @@ public slots:
     bool noticeDisconnect(QString name);
     bool sendMessageToAll(QString msg, QString name);
     bool sendMessageToOne(QString msg, QString name);
+    bool sendCallRequest(QString name, QString address);
+    bool sendMakeCall(QString recieve, QString address);
+    bool sendRejectCall(QString name);
 
 private slots:
     void readyRead();
     void disconnected();
     void disconnectfromHost();
-    void RTPData();
+
 
 private:
     qintptr socketDescriptor;
     // QMutex mutex;
     // QWaitCondition cond;
     // bool quit;
-    RTPUDPv4TransmissionParams transmissionParams;
-    RTPSessionParams sessionParams;
-    bool returnValue;
-    int portBase = 14004;
-    int status;
-    RTPPacket *pack;
-    uint8_t *datatest;
-    RTPSession rtpSession;
-
+    QString connectedToName;
+    QString connectedToAddress;
 
 };
 

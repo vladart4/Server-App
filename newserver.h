@@ -42,6 +42,9 @@ class NewServer : public QTcpServer
         void removeClient(NewClient* client);
         void sendMessageToAll(QString msg, QString name);
         void sendMessageToOne(QString msg, QString name, QString rcv);
+        void sendCallRequest(QString reciever, QString address, QString sender);
+        void makeCall(QString reciever, QString sender);
+        void rejectCall(QString sender, QString reciever);
 
     protected:
         void incomingConnection(qintptr socketDescriptor);
