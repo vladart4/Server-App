@@ -23,10 +23,14 @@ NewClient::NewClient(qintptr ID, QObject *parent) : QObject(parent)
     connect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()), Qt::DirectConnection);
     connect(socket, SIGNAL(disconnected()), this, SLOT(disconnected()));
 
-    qDebug() << socketDescriptor << " Client connected";
-
     ipv4address = new QHostAddress(socket->peerAddress().toIPv4Address());
 
+    qDebug() << socketDescriptor << ipv4address << " Client connected";
+}
+
+bool NewClient::isCalling()
+{
+    return connectedToName.length() != 0;
 }
 
 

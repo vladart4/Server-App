@@ -93,9 +93,17 @@ void NewServer::sendCallRequest(QString reciever, QString address, QString sende
     if (NamesMap.contains(reciever))
     {
         NewClient* rcv = NamesMap[reciever];
-        QMetaObject::invokeMethod(rcv,
-                   std::bind(&NewClient::sendCallRequest, rcv, sender, address));
-
+        if (rcv->isCalling() || sender == reciever)
+        {
+            NewClient* snd = NamesMap[sender];
+            QMetaObject::invokeMethod(snd,
+                       std::bind(&NewClient::sendRejectCall, rcv, reciever));
+        }
+        else
+        {
+            QMetaObject::invokeMethod(rcv,
+                       std::bind(&NewClient::sendCallRequest, rcv, sender, address));
+        }
 
     }
 }

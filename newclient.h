@@ -33,6 +33,8 @@ public:
     QTimer *timer;
     QHostAddress *ipv4address;
 
+    bool isCalling();
+
 signals:
     void error(QTcpSocket::SocketError socketerror);
     void addName(QString, NewClient*);
