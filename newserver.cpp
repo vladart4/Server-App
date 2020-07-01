@@ -44,7 +44,17 @@ void NewServer::slotAddName(QString name, NewClient* client)
 
     // Даём клиенту знать насчёт возможности входа
     QTimer::singleShot(50, client,
-        std::bind(&NewClient::sendAccess, client, bAccess, names));
+                       std::bind(&NewClient::sendAccess, client, bAccess, names));
+}
+
+void NewServer::refreshUsers(QString name)
+{
+    if (NamesMap.contains(name))
+    {
+        NewClient* client = NamesMap[name];
+        QMetaObject::invokeMethod(client,
+            std::bind(&NewClient::refreshUsers, client, NamesMap.keys()));
+    }
 }
 
 
@@ -52,12 +62,13 @@ void NewServer::slotAddName(QString name, NewClient* client)
 void NewServer::removeClient(NewClient *client)
 {
     QString name = client->UserName;
+    bool atWill = client->goodDisconnect;
     // KILLME Clients.removeAt(Clients.indexOf(client));
     if (name != "")
     {
         NamesMap.remove(name);
         QTimer::singleShot(50, this,
-            std::bind(&NewServer::disconnectSignal, this, name));
+            std::bind(&NewServer::disconnectSignal, this, name, atWill));
    }
 }
 
@@ -131,8 +142,6 @@ void NewServer::rejectCall(QString sender, QString reciever)
 
         QMetaObject::invokeMethod(snd,
                 std::bind(&NewClient::sendRejectCall, snd, reciever));
-
-
     }
 }
 
@@ -156,6 +165,7 @@ void NewServer::incomingConnection(qintptr socketDescriptor)
     connect(client, &NewClient::requestCallSignal, this, &NewServer::sendCallRequest);
     connect(client, &NewClient::makeCallConnect, this, &NewServer::makeCall);
     connect(client, &NewClient::makeCallReject, this, &NewServer::rejectCall);
+    connect(client, &NewClient::refreshUsersSignal, this, &NewServer::refreshUsers);
 
     // Выводим клиента в отдельный поток, чтобы удобнее
     // фиксировать его отключение

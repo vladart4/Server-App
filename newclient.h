@@ -32,12 +32,14 @@ public:
     QTcpSocket *socket;
     QTimer *timer;
     QHostAddress *ipv4address;
+    bool goodDisconnect = false;
 
     bool isCalling();
 
 signals:
     void error(QTcpSocket::SocketError socketerror);
     void addName(QString, NewClient*);
+    void refreshUsersSignal(QString);
     void finished(NewClient*);
     void messageToAll(QString, QString);
     void messageToOne(QString, QString, QString);
@@ -48,8 +50,9 @@ signals:
 public slots:
     //void SetParent(NewServer* parserver);
     bool sendAccess(bool bAccess, QStringList names);
+    bool refreshUsers(QStringList names);
     bool noticeConnect(QString name);
-    bool noticeDisconnect(QString name);
+    bool noticeDisconnect(QString name, bool atWill);
     bool sendMessageToAll(QString msg, QString name);
     bool sendMessageToOne(QString msg, QString name);
     bool sendCallRequest(QString name, QString address);

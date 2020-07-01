@@ -25,7 +25,7 @@ NewClient::NewClient(qintptr ID, QObject *parent) : QObject(parent)
 
     ipv4address = new QHostAddress(socket->peerAddress().toIPv4Address());
 
-    qDebug() << socketDescriptor << ipv4address << " Client connected";
+    qDebug() << socketDescriptor << ipv4address->toString() << " Client connected";
 }
 
 bool NewClient::isCalling()
@@ -75,7 +75,6 @@ void NewClient::readyRead()
         return;
     else
         blockSize = 0;
-
     QString command;
     in >> command;
 
@@ -109,6 +108,18 @@ void NewClient::readyRead()
         qDebug() << socketDescriptor << "Command without auth!";
         disconnectfromHost();
     }
+    else if (cmdType == "USERS")
+    {
+        QString msg = command;
+        qDebug() << socketDescriptor << msg;
+
+        emit refreshUsersSignal(UserName);
+    }
+    else if (cmdType == "DISCONNECT")
+    {
+        goodDisconnect = true;
+        disconnectfromHost();
+    }
     else if (cmdType == "SENDMSG")
     {
         QString msg = command;
@@ -133,34 +144,24 @@ void NewClient::readyRead()
     else if (cmdType == "CALL")
     {
         QString name = command;
-
         qDebug() << socketDescriptor << "Call to" << command << "from" << ipv4address->toString();
-
         connectedToName = name;
-
         emit requestCallSignal(name, ipv4address->toString(), UserName);
 
     }
     else if(cmdType == "CALLACCEPT")
     {
         QString name = command;
-
         qDebug() << socketDescriptor << UserName << "Accepted call from" << name;
-
         connectedToName = name;
-
         emit makeCallConnect(UserName, name);
     }
     else if(cmdType == "CALLREJECT")
     {
         QString name = command;
-
         qDebug() << socketDescriptor << UserName << "Rejected call from" << name;
-
         connectedToName = "";
-
         emit makeCallReject(name, UserName);
-
     }
     else
     {
@@ -178,8 +179,6 @@ void NewClient::disconnected()
     emit finished(this);
     deleteLater();
     socket->deleteLater();
-
-
 }
 
 
@@ -207,7 +206,7 @@ bool NewClient::sendAccess(bool bAccess, QStringList names)
                                   QString::number(i->length()) +
                                   "_" + *i);
             socket->write(barr);
-
+            socket->waitForBytesWritten();
         }
         UserName = TempName;
         return socket->waitForBytesWritten();
@@ -220,6 +219,23 @@ bool NewClient::sendAccess(bool bAccess, QStringList names)
     }
 }
 
+bool NewClient::refreshUsers(QStringList names)
+{
+    if(socket->state() != QAbstractSocket::ConnectedState)
+        return false;
+
+    qDebug() << socketDescriptor << "Asked for users refresh";
+
+    QByteArray barr;
+    for (QStringList::iterator i=names.begin(); i != names.end(); ++i) {
+        barr = prepareMessage("EVMp_CONNECT_0_" +
+                              QString::number(i->length()) +
+                              "_" + *i);
+        socket->write(barr);
+        socket->waitForBytesWritten();
+    }
+    return true;
+}
 
 bool NewClient::noticeConnect(QString name)
 {
@@ -233,14 +249,14 @@ bool NewClient::noticeConnect(QString name)
     return socket->waitForBytesWritten();
 }
 
-bool NewClient::noticeDisconnect(QString name)
+bool NewClient::noticeDisconnect(QString name, bool atWill)
 {
     if(socket->state() != QAbstractSocket::ConnectedState)
         return false;
 
-    QByteArray barr = prepareMessage("EVMp_DISCONNECT_" +
-                          QString::number(name.length()) +
-                          "_" + name);
+    QByteArray barr = prepareMessage(QString("EVMp_") +
+        (atWill ? "USERLEFT_" : "DISCONNECT_") +
+        QString::number(name.length()) + "_" + name);
     socket->write(barr);
     return socket->waitForBytesWritten();
 }
@@ -280,7 +296,6 @@ bool NewClient::sendCallRequest(QString name, QString address)
            "EVMp_CALL_" + name);
     socket->write(rarr);
     return socket->waitForBytesWritten();
-
 }
 
 bool NewClient::sendMakeCall(QString reciever, QString address)
@@ -293,10 +308,6 @@ bool NewClient::sendMakeCall(QString reciever, QString address)
             "EVMp_CALLACCEPT_" + address + "_" + reciever);
     socket->write(makearr);
     return socket->waitForBytesWritten();
-
-
-
-
 }
 
 bool NewClient::sendRejectCall(QString name)
@@ -310,8 +321,6 @@ bool NewClient::sendRejectCall(QString name)
             "EVMp_CALLREJECT_" + name);
     socket->write(makearr);
     return socket->waitForBytesWritten();
-    return false;
-
 }
 
 

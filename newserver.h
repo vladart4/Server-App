@@ -33,12 +33,13 @@ class NewServer : public QTcpServer
         void sendBack(QString, NewClient*);
         void grantAccess(bool, QStringList);
         void connectSignal(QString);
-        void disconnectSignal(QString);
+        void disconnectSignal(QString, bool);
         void sendMessageToAllSignal(QString, QString);
         void sendMessageToOneSignal(QString, QString, NewClient*);
 
     public slots:
         void slotAddName(QString name, NewClient* client);
+        void refreshUsers(QString name);
         void removeClient(NewClient* client);
         void sendMessageToAll(QString msg, QString name);
         void sendMessageToOne(QString msg, QString name, QString rcv);
